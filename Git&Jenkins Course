@@ -1,0 +1,723 @@
+************************************Git & Jenkins Notes*************************************
+Start: 7 April 2023 (18 Farvardin 1402)
+Anisa co.
+Mr. Sayyahi
+Note Author: Saeid
+********************************************************************************************
+Syllabus:
+	- Introduction of DevOps
+	- Interoduction of Git
+	- Environment setup for Git
+	- Git repository
+	- Git commands
+	- Introduction to Jenkins
+	- Environment setup for Jenkins
+	- Jenkins Job
+	- Configuring Jenkins Server
+
+
+Operational notes:
+	yum install bash-completion -y
+	// to install auto-completion feature on redhad based os bash shell
+
+-set hostname
+	hostnamectl set-hostname git
+	logout
+	login
+
+
+/etc/yum.repos.d/wandisco-git.repo
+rpm -- import http://opensource.wandisco.com/RPM-GPC-KEY-WANdisco
+
+
+-install git v2.40.0 on Debian
+	  sudo apt install libz-dev libssl-dev libcurl4-gnutls-dev libexpat1-dev gettext cmake gcc
+      sudo curl -o git.tar.gz https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.40.0.tar.gz
+      sudo tar -zxf git.tar.gz
+      cd git-*
+      sudo make prefix=/usr/local all
+      sudo make prefix=/usr/local install
+      exec bash
+      git --version
+
+
+- install an apache in front of git(so that users will contact with apache and apache will contact with git)
+	-- authentication can be done in apache (in two ways):
+		--file-based
+		--ldap
+	-- git doesn't have authentication mechanism
+
+--create vhost in apache
+	cd /etc/httpd
+	mkdir vhosts
+	cd vhosts
+	touch mygit.conf
+    vim mygit.conf
+    --Note: git-http-backend module does the main task of connecting git with apache
+    vim /httpd/httpd.conf
+     --do some changes
+    go to /opt
+      - htpasswd -c pass [username]
+      	-[asks for pass]
+      - systemctl start apache2(or httpd in CentOs)
+
+
+-- git config
+		--system : config in all levels
+		--global : for the current user
+		--local  : for the current repository
+
+-- create bare repository
+	-- git init --bare myrepo
+
+
+
+--add specific files of a file to staging
+	- the changes of a file is called a hunk
+	- in order to add specific parts of a hunk:
+		-- e.g. : git add file 3 --patch
+			-- press e
+			-- delete delete the files that you don't want to stage
+
+
+-- .gitignore
+	-- define the file pattern to be ignored:
+			-- *.a
+			-- !lib.a(don't ignore lib.a file)
+			-- /TODO(ignore TODO file in current dir)
+			-- build/ (ignore all files in any dir named build)
+			-- doc/*.txt
+	-- difference with info/exclude:
+			-- .gitignore will be shared with all the others who clone the repo, but info/exclude will be only done on local repo
+
+-- in order to add and commit a "modified file" simultaneously:
+			-- e.g. git commit -am "add and commit"
+			-- however we can not do this for "Untracked files"
+
+-- edit commit message
+		-- git commit --amend
+
+-- removing a file from git repo and move to Untracked status
+		-- git rm file (remove the file from repo and delete in next commit)
+		-- git rm --cached file (remove the file from git repo but don't delete from working dir, go to Untracked state)
+
+-- rename a file in git repo
+		- git mv file1 newFile
+
+-- git log
+		- show the commit history
+		- git log -p
+				- show diff of two commits
+		- git log -4
+				- show the latest 4 commits
+		- git log --after="10 minutes ago"
+				- show the commits of 10 minues ago 
+		- git log --before="10 minutes ago"
+				- don't show the logs of 10 mins ago
+		- git log --before="Fri Apr 14 13:27:07 2023"
+		- git log --after="Fri Apr 14 13:27:07 2023"
+		- git log --after="Fri Apr 14 13:27:07 2023" --before="Fri Apr 14 13:50:07 2023"
+		- git log --pretty=oneline
+				- show commitId along with the message
+		- git log --oneline
+				- show only the first several characters of commitId along with the message
+		- git log [fileName]
+				- show only the commits of a specific file
+		- git log -L '/main/',/^}/:helloWorld
+				- show only the changes of main function in helloWorld file0
+
+-- git diff file1
+-- git diff --staged file1
+
+-- adding a forgotten file in latest commit
+		- git commit -amend
+				-- commitId changes each time you amend a commit
+
+-- unstaging a file
+		- git reset HEAD file1
+		- git restore --staged file1
+
+-- restore the contents of unstaged file to before staging(last commit)
+		- git checkout file1
+
+-- git restore --source=[commitId] file1
+		- unstage a file to specific commit
+
+-- git remote -v
+		- shows the remote repository
+		- origin is the address of the location that we have cloned from
+
+-- Adding a new remote repo
+		- git remote add remote2 http://192.168.100.10/git/testrepo
+
+-- rename a remote repo
+		- git remote rename remote2 remote3
+
+-- remove a remote repo
+		- git remote remove remote2
+
+-- git push
+		- e.g. git push origin master
+		- requires write access
+
+-- git fetch <remote>
+			- pulls down all the data from the remote project that you don't have yet
+			- only downloads the data to local repo but doesn't automatically merge it with any data you are currently working on.
+			- you should also do git merget to merge the downloaded data with working directory
+
+-- git pull <remote>
+		- automatically fetches and the merges the remote branch into your current branch
+
+-- git config --global --add safe.directory /srv/git/myrepo
+		- add current working dir to the safe directories of git
+
+-- git remote show origin
+		- show the diff of your working dir with remote origin
+			- uptodate : means you're synched
+			- fastforwardable: means you're ahead of remote origin and you can push your changes to remote
+
+-- git revert
+		 - reverts the changes introduced by commit and appends a new commit with resulting reversed content.
+		 - git won't lose history
+		 - e.g. git revert HEAD
+		 - e.g. git revert HEAD~3 (reverts last 3 commits)
+
+-- Tagging
+		- specifies points in history as being imporant which usually is a release point such as v1.0
+		- git tag (shows the current tags)
+				-- Lightweight tag: like a branch that doesn't change, just a pointer to a specific commit
+				-- Annotated tag: stored as full objects in Git database which have some metadata such as checksum, tagger name, email, date, and triggering message
+		- e.g.: git tag [tag_name] (Lightweight tag): tagging on latest commit
+		- git show [tag_name] : show tag details
+		- e.g.: git tag -a [tag_name] -m ["message"](Annotated tag) : tagging on latest commit
+		- e.g:  git tag 1.0.1 [commit_id] : tagging on specific commit
+		- Note: Tags won't transfer to remote repo by default with git push. In order to do that:
+					-- git push origin [tag]
+					-- git push origin --tags (transfers all the uncommited tags)
+		-- git tag -d [tag name] : deleting a tag in local repo
+		-- .git/refs/tags : includes the tags and their associated commits
+		-- git push origin :refs/tags/v1.0.3 (remove a specific tag on remote repo)
+		-- git pull --prune origin refs/tags/*:refs/tags* (remove the tags on local repo which are not available on remote repo)
+
+
+-- Branching
+		- diverge from the main line of development and continue to do work without messing with the main line
+		- the default branch name is master
+		- git branch [name] : create new branch
+		- git branch -d [name]: delete a branch
+		- git branch : lists available branches
+		- git branch -v : shows more info
+		- git branch -a : show all branches including local and remote branches
+		- switching between branches:
+				- git checkout [branch_name]
+				- git switch [branch_name]
+				- creating a branch when switching if non-existent
+						- git checkout -b [branch_name]
+						- git switch -c [branch_name]
+		Note: git log --all --graph (show the log of all branches)
+
+		-- detached Head state
+				-git checkout: when a filename is not given and the reference is not a (local) branch (say, it is a tag, a remote branch, a SHA-1 ID) we get an anonymous branch, called a detached HEAD
+				- git checkout v1.0
+				- To save the changes in detached Head Mode:
+						- e.g.: git checkout v1.0 -b MyBranch
+
+-- Merging
+		- steps:
+				- git checkout master
+				- git merge [branch_name]
+
+		- conflict:
+					- if you changed the same part of the same file differently in two branches you're mergin, a conflict will happen
+						- open the file which has conflict (e.g.: vi file1)
+						- do the edit and save it
+						- git add .
+						- git commit -m "message"
+			- git branch --merged : show the branches that are merged in current branch
+			- git branch --no-merged : show the branches that are not merged in current branch
+
+
+	-- Remote Branch
+			- git push origin B5
+			- git push origin:B5
+			- git push origin --delete B5 (delete a branch in remote repo)
+			- Note: after pulling a new branch from remote repo, you should first switch to that new branch in local repo, to be able to see it in the output of "git branch".
+			- git remote prune origin (delete the branches in local repo, which are not available in remote repo anymore)
+			- Note: $git branch -vv (get more info about available branches)
+			- Removing all the branches in local repo, which are not in remote repo:
+					- git branch -vv | grep 'origin/.*:gone]' | awk '{print $1}' | xargs git branch -d
+
+			- git config fetch.prune true
+					-- sets the configuration to prune the local repo branches, each time we do git fetche
+
+			- git config pull.rebase falsse (merge)
+
+
+	-- Rebasing
+			- a method of mergin a branch into another one
+			- steps(e.g.):
+				- #git checkout experiment
+				- #git rebase master
+				- #git checkout master
+				- #git merge experiment
+			- rebase makes for a cleaner and linear history (different from merge)
+
+	--Note: cp -r myrepo myrepo_bac (getting a backup of git repo)
+			- git rebase --continue (to continue rebase after resolving conflict)
+			- git rebase --skip
+			- git rebase --ignore
+
+	-- advanced rebased
+			steps for merging specific branch commits into a branch:
+				- git rebase --onto master server client (1st: host branch , 2nd: branch which we don't want to merge, 3rd: branch which we want to merge)
+				- git checkout master
+			- git merge client
+			- git rebase master server
+			- git checkout master
+			- git merge server
+
+
+			--Squash
+				- consolidating multiple commits into one single commit, for the purpose of simplifying the project history
+				- squash - interactive rebase
+						- git rebase --interactive master B1
+							- then replace "pick" with "squash" in the vim file that is opened, to remove the commits tagged with "squash". This will replace with only one commit
+						- git merge - interactive merge(e.g.):
+							- git merge --squash B1
+							- git commit -m "Add f3,f4 and f5"
+
+
+			--cherry pick
+					- the act of picking a commit from a branch and apply it to another
+					- steps(e.g.):
+						- first go to the destination branch(correct place of a commit)
+							- git checkout B1
+						- then choose a specific commit from the source
+							- git cherry-pick 33151b
+
+
+			--Stashing
+						- takes the dirty state of your working dir(that is, your modified tracked files and staged changes) and saves it on a stack of unfinished changes that you can reapply to any time
+						- git stash
+						- git stash list
+						- git stash apply stash@{0}
+						- git stash pop (apply and delete the last stashed change)
+						- git stash pop --index (to pop the changes as their state before stash(staged,modified))
+						- git stash --include-untracked
+								-also stashed untracked files
+						- git stash --patch
+								- interactive stash selected parts of a change
+
+
+			--Git bisect
+						- walks you through recent commits, asks you if they are good or bad, and narrows down the broken commit
+						- create a new repository and a hisotry of commits to play with
+						- steps(e.g.):
+								- git bisect start
+								- git bisect good [good commit_id] (the hash of good commit)
+								- git bisect bad [bad commit_id] (the hash of bad commit)
+								- git bisect bad
+								- git bisect good
+								- git bisect bad
+								- git bisect reset
+
+			--Git Workflow (Subversion-Style Workflow)
+						- All developers push to the same server works which is a very common workflow, especially from people transitioning from a centralized system
+
+			--Git Workflow (Integration Manager Workflow)
+						- only a single person (integration manager) can commit to the blessed repository. Developers clone from that repo and then push to their own independent repo. So the integrator pulls these repos.
+						- This type of workflow is used by open source or GitHub repos
+
+			--Git Workflow (Dictator and Lieutenants Workflow)
+						- This type of workflow is effective for massive projects like Linux kernel. every developer can clone from the blessed repo. Every Lieutenants are responsible for a specific subsystem of the project who merges in all changes related to that subsystem. The dictator pulls changes from his lieutenants and push to the blessed.
+
+			-- removing a file from every commit
+							- you commited a wrong large file into your repository and now you want to delete it from the history
+							- git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch [file_name]' --prune-empty -tag-name-filter cat -- --all
+							--index-filter: rewriting the index
+							--prune-empty: remove empty commits generated by some filters
+							--tag-name-filter <command>: rewriting tag names
+							--: specifies the end of options to git filter-branch
+							--all: all refs
+							#git push origin --all --force
+
+							-- git for-each-ref --format='delete %(refname)' refs/original | git update-ref
+								 --stdin
+
+
+			--GitHub
+							-- Forking: To contribute to an existing project which you don't have push access, you can fork project.
+
+			-- Git Best Practices
+							- Git Flow
+									- two main branches with an infinite lifetime:
+											- master
+											- develop
+									- The head of origin/develop reflects a state with the latest delivered development changes for the next release
+									- The different types of limited life time branches:
+											- Feature/topic branches
+													- may branch off from develop
+													- must merge back into develop
+													- branch naming convention: anything except master, develop, release-*, or hotfix-*
+													- git merge --no-ff
+											- Release branches
+													- support preparation for a new production release
+													- may branch off from develop
+													- must merge back into develop and master
+													- branch naming convention: release-*
+													- for minor bug fixes and preparing meta-data for a release
+													- adding large new features here is prohibited. They must be merged into develop and therefore, wait for the next big release
+													- finishing a release branch:
+															- The release branch is merged into master
+															- The commit on master must be tagged
+															- The changes made on the release branch need to be merged back into develop
+
+											- Hotfix branches
+														- When a critical bug in a production version must be resolved immediately, a hotfix branch may be branched off from the corresponding tag on the master branch that marks the production version
+														- when finished, the hotfix needs to be merged back into master, but also needs to be merged back into develop
+														- when a release branch currently exists, the hotfix changes need to be merged into that release branch, instead of develop
+											
+											- install git flow
+														-curl -OL https://raw.github.com/nvie/gitflow/develop/contrib/gitflow-installer.sh
+														- chmod +x gitflow-installer.sh
+														- ./gitflow-installer.sh
+
+											- git flow
+														- git flow init
+														- git-flow feature start [feature-name]
+																- creates a new branch for developing a new feature
+														- git-flow feature finish [feature-name]
+																- feature branch merges into develop branch
+																- feature branch is removed
+																- switch to develop branch
+														- git-flow feature publish [feature-name]
+																- acts like [git push origin [feature-name]]
+														- git-flow feature pull origin [feature-name]
+																- pulls the feature branch from origin
+														- git-flow release start [release-name]
+																- creates a new branch based on develop branch and checkout to that branch
+														- git-flow release finish [release-name]
+																- latest objects have been fetched from origin
+																- release branch has merged into master
+																- the release was tagged
+																- release branch has been beck-merged into develop and master branches
+														- git-flow release publish [release-name]
+														- git-flow release pull origin [release-name]
+														- git-flow hotfix start [hotfix-name]
+														- git-flow hotfix finish [hotfix-name]
+
+
+			-- Git (best Practices)
+					- Use a repository naming convention
+							- Use only lower case alphanumeric characters
+							- Use '-' rather than spaces or underscores
+					- Don't git push straight to master
+					- Don't commit code as an unrecognized author
+					- Define code owners for faster code reviews
+					- Don't leak secrets into source control
+					- Don't commit dependencies into source control								
+					- Don't commit local config files into source control
+					- Create a meaningful git ignore file
+					- Lock package version
+					- Specify standard package versions
+					- Use a branch naming convention
+					- Keep branches up to date
+					- remove inactive Git members
+					- Git commit messages
+							- begin with a short summary line
+									- start with an imperative present active verb: Add, Drop, Fix, Refactore, ...
+									- Use up to 50 characters(git official preference)
+									- Finish without a sentence-ending-period
+							- continue with a longer description
+									- Add a blank line after the summary line, then write as much as you want
+									- Use up to 72 characters per line for typical text for word wrap
+									- Use as many characters as needed for a typical text
+
+
+			-- Git Hooks
+					- are custom scripts that git executes before or after events such as commit, push, ...
+					- They are unique and run locally and resides inside the .git/hooks directory
+					- can be used to:
+							- check commits for errors before they are pushed
+							- ensure code meets project standards
+							- Notify team members about changes
+							- Push code into a production environment, and more
+					- Types of hooks:
+							- Client-side(local) Hooks
+							- Server-side(remote) Hooks
+					- ".Sample" should be removed from the name of hook script
+							- cp commit-msg.sample commit-msg
+
+			-- Git mailmap - Merge Different Authors
+					- when one author sets his username/email differently from different places, it gets difficult to get commit reports(git shortlog -se)
+					- solution:
+							- vim .mailmap (e.g.)
+									- anisa <anisa@anisa.co.ir>anisa<anisa@anisa.co.ir>
+									- anisa <anisa@anisa.co.ir>Anisa<anisa@anisa.co.ir>
+
+
+
+
+**********************************************JENKINS********************************************
+- An open source Continuous Integration(CI) tool written in java
+- Build and tests our software continuously 
+
+-Jenkins can be installed with package manager & on an Application Server [Apache-Tomcat]
+-Installing Jenkins on Apache-Tomcat
+		-wget apache-tomcat[e.g. v.9 or v.10 ...]
+		- wget jenkins.war file
+		- copy jenkins.war to apache-tomcat "webapps" folder
+		- cd to conf folder of apache-tomcat
+		- vim server.xml
+				-change port in "<connector>" section
+		- go to bin folder in apache-tomcat
+			- ./start.sh
+		- or to be able to run and shutdown the apache with systemctl:
+			-	ln -s apache-tomcat /opt/tomcat
+			- vim /etc/systemd/system/tomcat.service
+				- copy unit configuration content to this file
+				-systemctl start tomcat.service
+			- cd logs inside tomcat folder
+			- catalina.out inside tomcat logs folder is used for logging
+			- copy initial password from this file
+			-  firewall-cmd --zone=public --permanent --add-port=80/tcp
+			- firewall-cmd --reload
+			- then open the jenkins web page with IP/jenkins path in browser
+			- cd /root/.jenkins
+					- this is the jenkins base directory
+			- go to /opt/tomcat/conf 
+					- vim context.xml(to increase cache size80)
+							- in contect section
+									- <Resources cachingAllowd="true" cacheMaxSize="100000" />
+					- restart apache-tomcat
+
+			- Memory Consideration
+					- Continuous Integration(CI) Servers use a lot of memory
+					- Jenkins spans a new Java process each time it kicks off a build, so during a large build, the build process needs the memory, not jenkins
+					- vim /etc/profile.d/java_opt.sh
+							-export JAVA_OPTS="-Djava.awt.headless=true -Xmx512m -DJENKINS_HOME=/root/.jenkins"
+							- ...
+
+			-- Unstable status of a job in JENKINS:
+					- if one or some of tests we have written, failed, the job would be in unstable state
+
+			-- if you get an error about "reverse proxy" in manage jenkins page:
+					- go to configure system section in Manage Jenkins
+						- check the Jenkins URL
+					- Otherwise it relates to tomcat configuration:
+							- go to terminal
+							- cd to /opt/tomcat/conf
+							- vim catalina.properties
+								- add this line in the end of the file:
+										- org.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true 
+							- vim /etc/profile.d/catal.sh(optional name)
+									export CATALINA_OPTS="-Dorg.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH=true"
+
+			-- Note: the projects cloned from git are located inside workspace directory of jenkins
+			-- Manage Jenkins
+						- Configure System
+								- System Message
+										- shows at the top of Jenkins main page
+								- # of executors
+										- recommended number of executors is the number of cpu cores
+										- each node can have a specific number of executors
+										- if we set the number of executors to "0", that node won't do any builds
+										- if a build is waiting for a long time in queue, it's having starvation
+								- labels
+										- for setting some labels
+										- Usage:
+												- for matching lables to specific nodes or not
+								- Quiet period
+										- the time of waiting of a job in a queue of the executors
+										- The proper number depends on the frequency and duration of the builds
+								- SCM checkout retry count
+										- the number of retrying of getting the data from an SCM(e.g. GIT)
+								- Restrict Project naming
+										- setting a pattern for the name of projects
+										- e.g.: test*
+								- Resource Root URL
+										- this is security feature to prohibit malicious requests
+										- getting access to resources root files and artifacts through another URL
+										- CSP(Content Security Policy)
+										- give this URL to the users
+								- Global properties
+										- Environment variables
+												- Don't use "." in the variable name
+												- use $variable_name to call that variable
+										- Tool locations
+											- location of tools like java, ansible, docker, ...
+								- Fingerprints
+											- Disable Fingerprint Cleanup
+								- Administrative monitors configuration
+											- monitoring some events on jenkins(e.g. deprecated plugins)
+								- Global Build Discarders
+											- How to discard older builds
+								- Shell
+											- sets shell executable
+											- by default it's bash
+
+			-- Note: To run jenkins in a new machine, you only need to copy Home directory of jenkins from another machine to this new machine
+
+
+			-- Reload Configuration from disk
+						- to reload the changed config of Jenkins without restarting it
+
+			-- Prepare for shutdown
+						- doesn't accept running any builds until we shutdown the jenkins and start it again or cancel the prepare for shutdown
+
+			-- Plugins
+					- Installing a new plugin:
+						- Manage Jenkins -> Manage Plugins -> Available Plugins
+					- Advanced Settings
+						- setting proxy, Deploying plugins offline, Update Site (URL of JSON file to be used for downloading plugins)
+					- Plugins are with .hpi extension
+					- after plugins are installed, their extension is .jpi
+					- installed plugins are in /root/.jenkins/plugins directory (Jenkins root)
+					- We should also install the tool(e.g. Git) in our vm
+							- then we should go to Manage Jenkins -> Global Tool Configuration, and in Git Installations section, set Name to git and path to git
+
+			-- Maven (Build tool)
+					- Installing Apache Maven
+					- Then install maven plugin in jenkins
+							- then we should go to Manage Jenkins -> Global Tool Configuration, and in Maven Installations section, set Name to maven and path to /opt/maven
+
+
+
+			- Maven Job -> Configure -> Source Control Management
+					- Repository URL: (e.g.): http://192.168.56.101/git/hello-world
+					- credentials: add git credentials
+			
+			- Maven Job -> Configure -> Build Environment
+					- Build -> Root POM
+							- path of POM.xml file. type pom.xml if it's in root of repo
+
+			- Job -> configure -> Discard old builds
+					-max # of builds to keep
+
+			- Keep this build forever
+					enter into a build and click on "keep this build forever" on top right 
+
+			- This project is parameterised
+					- add parameter (e.g. Boolean)
+
+			- Execute concurrent builds if necessary (a checkbox in job config)
+
+			- Block build when upstream/downstream project is building
+					- don't allow building down/upstream job if up/downstream job is not done yet
+
+			- Advanced section of Repositories in Source Control Management of a job:
+					- name: name of remote repo
+					- refspec: set the behavior of fetch (e.g.: refs/heads/develop:refs/remote/origin)
+
+			- Additional behaviours
+					- e.g. : Advanced checkout behaviours, Advanced clone behaviors
+					- Shallow clone (in Advanced clone behaviors): gets the specific amounts of commits to clone and build later (using shallow clone depth option)
+					- create a tag for every build
+					- clean before/after checkout
+					- custom user name/email address
+					- wipe out repository & force clone
+					- checkout to a subdirectory (set the clone path)
+					- checkout to a specific local branch
+					- calculate changelog against a branch 
+
+			- Build triggers
+				- build whenever a SNAPSHOT dependency is built
+						- build this job if its dependencies has been changed
+				- trigger builds remotely
+						- to run a build from a remote location using a URL given there along with a token name
+				- Build after other projects are built
+						- this makes upstream/downstream structure of jobs
+				- Build periodically
+						- e.g. : H/2 * * * * (builds the job every two minutes)
+				- Poll SCM
+						- checks SCM(e.g. Git) and builds if the source code has changed
+				- User Token:
+						-created on user config ->API Token
+				- Git Token:
+						-created on Git plugin notifycommit access token
+
+				- Build Environment
+						- use secret texts or files (as Environment variable)
+				- Pre Step & Post Step
+						- steps to do before & after builds
+
+				- Post-built Action
+						- the final actions to be done after the build finished and all other post steps done
+						- trigger only if build is stable: define downstream project
+
+
+			-- Master Slave Structure
+					- Master Node
+							- manages jenkins
+							- create and manage jobs
+							- manage the slave nodes
+					- Slave Node
+							- Jobs are actually performed on a slave node
+							- informs the master of the outcome and all of the job results
+					-required plugins
+						- Node and lable parameter
+								- jquery
+								- Token-macro
+						- Multi slave config
+						-SSH Slave
+					-NOTE: there is no need to install jenkins on slaves. (Just a TCP/IP connection between master and slave is fine). Only install java on slave nodes.
+					
+
+					-- install ssh build agent plugin on jenkins master
+
+		-- Note: We can't have two master nodes in Active-Active mode. However, we can have two master nodes in Active-Passive mode to act as failover.
+
+		-- Note: to run a job on a specific slave node:
+				- first we set a lable for slave node on its configure section
+				- then we go to configuration of a job and check restrict where this project runs
+				- then enter the lable of slave(as it is)
+				- then run the job
+
+		-- Note: we can enter into the maven "conf" folder and settings.xml and change the repos of downloading source from online to offline sources(e.g. repo manager)
+
+		-- To be able to select the node for executing a job:
+				- Install "Node and lable parameter" plugin on manage plugins
+				- then enter into job configuration
+				- select "This project is parameterized"
+				- then select the "Node" option
+				- type something in Name ("e.g. your node to execute this job on?")
+
+		-- In order to be able to connect to a windows machine as a slave node:
+					- install "multi slave config" plugin in manage plugins
+					- go to manage nodes
+					- add new node
+					- in configuration
+							- launch method
+									- launch agent by connecting it to the controller
+					- install jave(11+) on windows machine
+					- open a browser and enter to the jenkins on the windows machine
+					- select windows slave node on Nodes and click on launch agent
+
+		-- "Availability" in node configuration:
+					- bring this agent online in demand
+
+		-- plugins to install and use in global security
+				- ldap
+						- preferred authentication in production environment
+				- matrix authorization strategy plugin
+
+		-- Updating Jenkins
+				- download LTS version of Jenkins.war from its website and replace it in webapps folder of apache tomcat directory
+
+
+		-- Pipeline
+				- Note: Install "pipeline stage view" plugin to have a better view of stages and steps in the pipeline script
+
+				- Two methods of writing Jenkinsfile:
+						- Declarative(preferred)
+						- 
+
+				- Agent in pipeline:
+						- none: in this mode, we set "agent none" on global pipeline and set agent on each stage specifically.
+
+				- Note: install "git parameter" plugin
+
+				- Note: In order to restart jenkins, add /restart to the url of jenkins in browser. Or you can use restart in jenkins cli.
+
+		
+							
